@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mockup 3 - Neumorphism & Soft UI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #E0E5EC;
+            --primary: #FF6B6B; /* Coral */
+            --text: #2D3436;
+            --shadow-light: #ffffff;
+            --shadow-dark: #a3b1c6;
+        }
+        * { box-sizing: border-box; font-family: 'Nunito', sans-serif; }
+        body { margin: 0; padding: 20px; background-color: var(--bg); color: var(--text); height: 100vh; display: flex; gap: 20px; overflow: hidden;}
+        
+        /* Mixin para Neumorfismo */
+        .neu-box {
+            background: var(--bg);
+            border-radius: 20px;
+            box-shadow: 9px 9px 16px var(--shadow-dark), -9px -9px 16px var(--shadow-light);
+        }
+        .neu-pressed {
+            background: var(--bg);
+            border-radius: 10px;
+            box-shadow: inset 6px 6px 10px var(--shadow-dark), inset -6px -6px 10px var(--shadow-light);
+        }
+        
+        /* Navigation (Floating Left) */
+        .sidebar { width: 100px; display: flex; flex-direction: column; align-items: center; padding: 30px 0; gap: 30px; }
+        .logo-icon { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--primary); font-weight: bold; }
+        .nav-btn { width: 60px; height: 60px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--text); cursor: pointer; transition: 0.2s; border: none; outline: none; }
+        .nav-btn.active { color: var(--primary); box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light); }
+        
+        /* Main Workspace */
+        .workspace { flex: 1; display: flex; flex-direction: column; padding: 20px; }
+        
+        /* Search */
+        .search-container { display: flex; align-items: center; padding: 0 20px; height: 60px; border-radius: 30px; margin-bottom: 30px; }
+        .search-container input { flex: 1; border: none; background: transparent; outline: none; font-size: 18px; padding-left: 15px; color: var(--text); }
+        
+        /* Products Grid */
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 30px; overflow-y: auto; padding: 20px 10px; }
+        .card { padding: 20px; display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; transition: 0.2s; border: none; outline: none;}
+        .card:active { box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light); }
+        .card-img { width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 15px; box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light); }
+        .card-title { font-weight: bold; font-size: 16px; margin-bottom: 10px; }
+        .card-price { color: var(--primary); font-weight: 800; font-size: 18px; }
+        
+        /* Right Order Panel */
+        .order-panel { width: 350px; padding: 30px; display: flex; flex-direction: column; }
+        .order-title { font-size: 22px; font-weight: 800; margin-bottom: 30px; text-align: center; }
+        
+        .order-items { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; padding: 10px 0;}
+        .order-item { padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .item-details h4 { margin: 0 0 5px 0; font-size: 14px; }
+        .item-details p { margin: 0; color: var(--primary); font-weight: bold; }
+        .item-qty { width: 40px; height: 40px; border: none; outline: none; text-align: center; font-weight: bold; font-size: 16px; }
+        
+        /* Checkout */
+        .checkout-zone { margin-top: 30px; }
+        .total-wrap { display: flex; justify-content: space-between; align-items: center; font-size: 24px; font-weight: 900; margin-bottom: 20px; }
+        .checkout-btn { width: 100%; height: 60px; border-radius: 30px; border: none; outline: none; font-size: 20px; font-weight: bold; color: var(--primary); cursor: pointer; transition: 0.2s; }
+        .checkout-btn:active { box-shadow: inset 6px 6px 10px var(--shadow-dark), inset -6px -6px 10px var(--shadow-light); }
+    </style>
+</head>
+<body>
+    <div class="sidebar neu-box">
+        <div class="logo-icon neu-box">C</div>
+        <button class="nav-btn active"><i class="bi bi-shop"></i></button>
+        <button class="nav-btn"><i class="bi bi-clock-history"></i></button>
+        <button class="nav-btn"><i class="bi bi-tag"></i></button>
+        <button class="nav-btn"><i class="bi bi-box"></i></button>
+    </div>
+    
+    <div class="workspace">
+        <div class="search-container neu-pressed">
+            <i class="bi bi-search" style="color: var(--primary); font-size: 20px;"></i>
+            <input type="text" placeholder="Encuentra tu antojo...">
+        </div>
+        
+        <div class="products-grid">
+            <button class="card neu-box">
+                <div class="card-img">🍗</div>
+                <div class="card-title">1/4 Pollo</div>
+                <div class="card-price">$ 18,000</div>
+            </button>
+            <button class="card neu-box">
+                <div class="card-img">🍖</div>
+                <div class="card-title">1/2 Pollo</div>
+                <div class="card-price">$ 35,000</div>
+            </button>
+            <button class="card neu-box">
+                <div class="card-img">🍟</div>
+                <div class="card-title">Papas</div>
+                <div class="card-price">$ 6,000</div>
+            </button>
+        </div>
+    </div>
+    
+    <div class="order-panel neu-box">
+        <div class="order-title">Tu Orden</div>
+        
+        <div class="order-items">
+            <div class="order-item neu-box">
+                <div class="item-details">
+                    <h4>1/4 Pollo</h4>
+                    <p>$ 18,000</p>
+                </div>
+                <input type="text" value="1" class="item-qty neu-pressed">
+            </div>
+            
+            <div class="order-item neu-box">
+                <div class="item-details">
+                    <h4>Papas</h4>
+                    <p>$ 6,000</p>
+                </div>
+                <input type="text" value="2" class="item-qty neu-pressed">
+            </div>
+        </div>
+        
+        <div class="checkout-zone">
+            <div class="total-wrap">
+                <span>Total</span>
+                <span>$ 30,000</span>
+            </div>
+            <button class="checkout-btn neu-box">Cobrar</button>
+        </div>
+    </div>
+</body>
+</html>

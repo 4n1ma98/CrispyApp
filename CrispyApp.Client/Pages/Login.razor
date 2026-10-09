@@ -1,0 +1,165 @@
+@page "/login"
+@layout CrispyApp.Client.Layout.AuthLayout
+@attribute [AllowAnonymous]
+@implements IDisposable
+@using CrispyApp.Application.DTOs
+@using CrispyApp.Client.Services
+@using CrispyApp.Client.Auth
+@inject PosApiService ApiService
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+
+<PageTitle>Login - CrispyApp</PageTitle>
+
+<!-- Toast Flotante Notificaciones (Top-Right) -->
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+        <div class="toast show crispy-toast @alertClass d-flex align-items-center justify-content-between p-3 rounded-3 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi @alertIcon fs-5"></i>
+                <div class="toast-body p-0 fw-semibold">
+                    @errorMessage
+                </div>
+            </div>
+            <button type="button" class="btn-close ms-3" @onclick="DismissAlert" aria-label="Cerrar"></button>
+        </div>
+    </div>
+}
+
+<div class="login-wrapper">
+    <div class="login-card">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold mb-1"><span style="color: var(--primary);">CRISPY</span>APP</h2>
+            <p class="text-muted mb-0">Acceso al Sistema POS</p>
+        </div>
+
+        <EditForm Model="loginModel" OnValidSubmit="HandleLogin" OnInvalidSubmit="HandleInvalidSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="field-group">
+                <label class="form-label text-muted fw-bold mb-1">Usuario</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent border-end-0" style="color: var(--text-muted);"><i class="bi bi-person-fill"></i></span>
+                    <InputText class="form-control border-start-0 ps-0" style="box-shadow: none;" @bind-Value="loginModel.Username" placeholder="admin" />
+                </div>
+                <ValidationMessage For="() => loginModel.Username" class="text-danger small mt-1 d-block" />
+            </div>
+
+            <div class="field-group">
+                <label class="form-label text-muted fw-bold mb-1">Contraseña</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent border-end-0" style="color: var(--text-muted);"><i class="bi bi-lock-fill"></i></span>
+                    <InputText type="password" class="form-control border-start-0 ps-0" style="box-shadow: none;" @bind-Value="loginModel.Password" placeholder="******" />
+                </div>
+                <ValidationMessage For="() => loginModel.Password" class="text-danger small mt-1 d-block" />
+            </div>
+
+            <button type="submit" class="btn-action w-100 mt-2" disabled="@isSubmitting">
+                @if (isSubmitting)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    <span>Ingresando...</span>
+                }
+                else
+                {
+                    <i class="bi bi-box-arrow-in-right fw-bold me-1"></i> <span>Ingresar</span>
+                }
+            </button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private LoginRequestDto loginModel = new();
+    private bool isSubmitting = false;
+    private string? errorMessage;
+    private string alertClass = "alert-danger";
+    private string alertIcon = "bi-exclamation-triangle-fill";
+    private System.Threading.CancellationTokenSource? alertCts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Si ya hay token, redirigir
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            NavigationManager.NavigateTo("");
+        }
+    }
+
+    private void HandleInvalidSubmit()
+    {
+        ShowAlert("Por favor completa todos los campos requeridos.", "alert-warning", "bi-exclamation-circle-fill");
+    }
+
+    private void ShowAlert(string message, string cssClass, string icon)
+    {
+        alertCts?.Cancel();
+        alertCts?.Dispose();
+        alertCts = new System.Threading.CancellationTokenSource();
+
+        errorMessage = message;
+        alertClass = cssClass;
+        alertIcon = icon;
+
+        var token = alertCts.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(5000, token);
+                if (!token.IsCancellationRequested)
+                {
+                    errorMessage = null;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+            catch (TaskCanceledException) { }
+        });
+    }
+
+    private void DismissAlert()
+    {
+        alertCts?.Cancel();
+        errorMessage = null;
+    }
+
+    private async Task HandleLogin()
+    {
+        isSubmitting = true;
+        errorMessage = null;
+
+        try
+        {
+            var result = await ApiService.LoginAsync(loginModel);
+            if (result != null && !string.IsNullOrEmpty(result.Token))
+            {
+                await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "authToken", result.Token);
+                await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+                ((JwtAuthenticationStateProvider)AuthStateProvider).NotifyUserAuthentication(result.Token);
+                NavigationManager.NavigateTo("");
+            }
+            else
+            {
+                ShowAlert("Credenciales incorrectas.", "alert-danger", "bi-exclamation-triangle-fill");
+            }
+        }
+        catch (Exception)
+        {
+            ShowAlert("No se pudo conectar con el servidor.", "alert-danger", "bi-exclamation-triangle-fill");
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        alertCts?.Cancel();
+        alertCts?.Dispose();
+    }
+}
+

@@ -1,0 +1,22 @@
+/* Products Admin View Styles */
+.recipe-list {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.ingredient-item {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    transition: background-color 0.2s;
+}
+
+.ingredient-item:hover {
+    background-color: var(--surface-hover);
+}
+
+.category-badge {
+    background-color: var(--surface-hover);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    font-weight: 500;
+}

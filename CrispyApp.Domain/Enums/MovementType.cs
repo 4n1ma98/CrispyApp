@@ -1,0 +1,8 @@
+namespace CrispyApp.Domain.Enums;
+
+public enum MovementType
+{
+    In,
+    Out,
+    Adjustment
+}

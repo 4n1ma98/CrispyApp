@@ -1,0 +1,242 @@
+@page "/inventory"
+@using CrispyApp.Application.DTOs
+@using CrispyApp.Client.Services
+@inject PosApiService ApiService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Inventario - CrispyApp</PageTitle>
+
+<div class="main-content">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-box-seam me-2 text-primary"></i> Kardex (Inventario)</h2>
+    <button class="btn-action" style="width: auto; padding: 10px 20px;" @onclick="() => OpenCreateModal()"><i class="bi bi-plus-lg fw-bold me-1"></i> Nuevo Insumo</button>
+</div>
+
+@if (inventory == null)
+{
+    <p><em>Cargando inventario...</em></p>
+}
+else
+{
+    <table class="table table-striped table-hover table-borderless shadow-sm align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Unidad</th>
+                <th>Stock Actual</th>
+                <th>Mínimo</th>
+                <th>Alerta de Stock</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in inventory)
+            {
+                var isLow = item.CurrentStock <= item.MinStockLevel;
+                <tr>
+                    <td class="fw-bold">@item.Code</td>
+                    <td>@item.Name</td>
+                    <td>@item.UnitOfMeasure</td>
+                    <td class="fw-bold @(isLow ? "text-danger" : "text-success")">
+                        @item.CurrentStock.ToString("0.00")
+                    </td>
+                    <td>@item.MinStockLevel.ToString("0.00")</td>
+                    <td>
+                        @if (isLow)
+                        {
+                            <span class="badge bg-danger">⚠️ Comprar</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">✔️ Óptimo</span>
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-sm fw-bold me-1" style="background-color: rgba(16, 185, 129, 0.15); color: var(--success); border: none;" @onclick="() => OpenStockModal(item)" title="Ingresar mercadería"><i class="bi bi-box-arrow-in-down"></i> Ingresar</button>
+                        <button class="btn btn-sm fw-bold me-1" style="background-color: rgba(245, 158, 11, 0.15); color: var(--primary); border: none;" @onclick="() => OpenEditModal(item)" title="Editar"><i class="bi bi-pencil-square"></i> Editar</button>
+                        <button class="btn btn-sm fw-bold" style="background-color: rgba(239, 68, 68, 0.15); color: var(--danger); border: none;" @onclick="() => DeleteItem(item.Id)" title="Eliminar"><i class="bi bi-trash3"></i></button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (showStockModal && currentItem != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ingresar Mercadería a: @currentItem.Name</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModals"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Cantidad a Ingresar (@currentItem.UnitOfMeasure)</label>
+                        <input type="number" class="form-control" @bind="quantityToAdd" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModals">Cancelar</button>
+                    <button type="button" class="btn btn-success" @onclick="SaveStock">Guardar Ingreso</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showCreateOrEditModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEditing ? "Editar Insumo" : "Crear Nuevo Insumo")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModals"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <input class="form-control" @bind="formName" placeholder="Ej. Tomate"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Unidad de Medida</label>
+                        <select class="form-select" @bind="formUnit">
+                            <option value="Kg">Kg</option>
+                            <option value="Gr">Gr</option>
+                            <option value="Lts">Lts</option>
+                            <option value="Unit">Unidades</option>
+                        </select>
+                    </div>
+                    @if (!isEditing)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Stock Inicial</label>
+                            <input type="number" class="form-control" @bind="formCurrentStock" />
+                        </div>
+                    }
+                    <div class="mb-3">
+                        <label class="form-label">Stock Mínimo (Alerta)</label>
+                        <input type="number" class="form-control" @bind="formMinStock" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModals">Cancelar</button>
+                    <button type="button" class="btn btn-success" @onclick="SaveItem">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<InventoryItemDto>? inventory;
+    
+    // Add stock state
+    private bool showStockModal = false;
+    private InventoryItemDto? currentItem;
+    private decimal quantityToAdd = 0;
+
+    // Create/Edit item state
+    private bool showCreateOrEditModal = false;
+    private bool isEditing = false;
+    private Guid editingId;
+    
+    private string formName = "";
+    private string formUnit = "Unit";
+    private decimal formCurrentStock = 0;
+    private decimal formMinStock = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInventory();
+    }
+
+    private async Task LoadInventory()
+    {
+        inventory = await ApiService.GetInventoryItemsAsync();
+    }
+
+    private void OpenStockModal(InventoryItemDto item)
+    {
+        currentItem = item;
+        quantityToAdd = 0;
+        showStockModal = true;
+    }
+
+    private void OpenCreateModal()
+    {
+        isEditing = false;
+        formName = "";
+        formUnit = "Unit";
+        formCurrentStock = 0;
+        formMinStock = 0;
+        showCreateOrEditModal = true;
+    }
+
+    private void OpenEditModal(InventoryItemDto item)
+    {
+        isEditing = true;
+        editingId = item.Id;
+        formName = item.Name;
+        formUnit = item.UnitOfMeasure.ToString();
+        formMinStock = item.MinStockLevel;
+        showCreateOrEditModal = true;
+    }
+
+    private void CloseModals()
+    {
+        showStockModal = false;
+        showCreateOrEditModal = false;
+        currentItem = null;
+    }
+
+    private async Task SaveStock()
+    {
+        if (currentItem != null && quantityToAdd > 0)
+        {
+            await ApiService.AddStockAsync(currentItem.Id, quantityToAdd);
+            await LoadInventory();
+        }
+        CloseModals();
+    }
+
+    private async Task SaveItem()
+    {
+        if (isEditing)
+        {
+            await ApiService.UpdateInventoryItemAsync(new InventoryItemUpdateDto
+            {
+                Id = editingId,
+                Name = formName,
+                UnitOfMeasure = formUnit,
+                MinStockLevel = formMinStock
+            });
+        }
+        else
+        {
+            await ApiService.CreateInventoryItemAsync(new InventoryItemCreateDto
+            {
+                Name = formName,
+                UnitOfMeasure = formUnit,
+                CurrentStock = formCurrentStock,
+                MinStockLevel = formMinStock
+            });
+        }
+        await LoadInventory();
+        CloseModals();
+    }
+
+    private async Task DeleteItem(Guid id)
+    {
+        bool confirm = await JSRuntime.InvokeAsync<bool>("confirm", new object[] { "¿Estás seguro que deseas eliminar este insumo?" });
+        if (confirm)
+        {
+            await ApiService.DeleteInventoryItemAsync(id);
+            await LoadInventory();
+        }
+    }
+}
+</div>
